@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +29,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Access the environment variables
+VERIFICATION_TOKEN = os.getenv('VERIFICATION_TOKEN')
+OAUTH_ACCESS_TOKEN = os.getenv('OAUTH_ACCESS_TOKEN')
+BOT_USER_ACCESS_TOKEN = os.getenv('BOT_USER_ACCESS_TOKEN')
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
 # Application definition
 
@@ -122,3 +133,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+if __name__ == "__main__":
+    print(OAUTH_ACCESS_TOKEN)
