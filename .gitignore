@@ -139,3 +139,5 @@ GitHub.sublime-settings
 
 # confidential files
 slackapp/slackapp/.env
+
+ngrok.exe
