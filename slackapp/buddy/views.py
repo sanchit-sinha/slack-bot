@@ -50,7 +50,7 @@ def add(request):
             client.chat_postMessage(channel=channel, **mssg)
 
         else:
-            payload = add_subtopics(topic_name)
+            payload = payload_add_subtopics(topic_name)
             client.chat_postMessage(channel=channel, **payload)
 
         return HttpResponse(status=200)
@@ -60,16 +60,29 @@ def add(request):
 
 @csrf_exempt
 def edit(request):
+    if request.method == 'POST':
+        channel = request.POST.get('channel_id')
+        topic_name = request.POST['text']
+        topic_exists = Topic.objects.filter(topic_name=topic_name).exists()
+
+        if topic_exists:
+            msg = payload_edit_topic(topic_name)
+            client.chat_postMessage(channel=channel, **msg)
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=403)
     return HttpResponse(status=200)
 
 @csrf_exempt
 def delete(request):
     if request.method == 'POST':
-        client = slack.WebClient(token=settings.BOT_USER_ACCESS_TOKEN)
         channel = request.POST.get('channel_id')
         topic_name = request.POST['text']
 
-        if Topic.objects.filter(topic_name=topic_name):
+        if topic_name == 'all':
+            Topic.objects.all().delete()
+            client.chat_postMessage(channel=channel, text="All the topics have been successfully deleted!")
+        elif Topic.objects.filter(topic_name=topic_name):
             topic = Topic.objects.get(topic_name=topic_name)
             topic.delete()
             client.chat_postMessage(channel=channel, text="Topic - " + topic_name + " successfully deleted!")
@@ -123,6 +136,23 @@ def interactivity(request):
                     block_id = payload['message']['blocks'][1]['block_id']
                     subtopics = payload['state']['values'][block_id]['plain_text_input-action']['value']
 
+                    topic = Topic.objects.create(topic_name=topic_name)
+                    if subtopics is not None:
+                        subtopics = subtopics.splitlines()
+                        for subtopic_text in subtopics:
+                            Subtopic.objects.create(topic=topic, sentence_text=subtopic_text)
+                    response_text = f"Topic '{topic_name}' and subtopics created successfully."
+                    res = client.chat_update(channel=channel, ts=ts, text=response_text, blocks=[])
+
+                    display_topic(topic_name)
+                    return HttpResponse(status=200)
+                elif action['action_id'] == 'edit_in_db':
+                    block_id = payload['message']['blocks'][1]['block_id']
+                    subtopics = payload['state']['values'][block_id]['plain_text_input-action']['value']
+
+                    topic_fetch = Topic.objects.get(topic_name=topic_name)
+                    topic_fetch.delete()
+
                     if subtopics is not None:
                         topic = Topic.objects.create(topic_name=topic_name)
                         subtopics = subtopics.splitlines()
@@ -130,6 +160,7 @@ def interactivity(request):
                             Subtopic.objects.create(topic=topic, sentence_text=subtopic_text)
                         response_text = f"Topic '{topic_name}' and subtopics created successfully."
                         res = client.chat_update(channel=channel, ts=ts, text=response_text, blocks=[])
+
                         display_topic(topic_name)
                         return HttpResponse(status=200)
                 elif action['action_id'] == 'deny':
